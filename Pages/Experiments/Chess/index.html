@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="title">Chess</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../../../style.css">
+    <style>
+        .board {
+            display: flex;
+            flex-direction: column-reverse;
+            width: min(calc(100vw - 40px), calc(100vh - 75px));
+            height: min(calc(100vw - 40px), calc(100vh - 75px));
+            margin: auto;
+            margin-top: 60px;
+            touch-action: none;
+        }
+        .sideBar {
+            position: fixed;
+            width: calc(calc(95vw - min(calc(90vw - 40px), calc(100vh - 75px))) / 2);
+            height: calc(100vh - 75px);
+            margin: 5px;
+            border-radius: 40px;
+            padding: 10px;
+            border: var(--accent-color) solid 5px;
+            background-color: #000;
+            color: var(--accent-color);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0px;
+        }
+
+        .squareWhite {
+            background-color: #ec9334;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+            user-select: none;
+        }
+
+        .squareBlack {
+            background-color: #9d3516;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+            user-select: none;
+        }
+
+        .piece {
+            aspect-ratio: 1;
+            width: min(calc(calc(100vw - 40px)/8), calc(calc(100vh - 75px)/8));
+            background-size: 600% auto; 
+            object-fit: fill;
+            background-image: url('https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Chess_Pieces_Sprite.svg/3840px-Chess_Pieces_Sprite.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail');
+            background-repeat: no-repeat;
+            display: inline-block;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .info {
+            display: flex;
+            width: 100%;
+            flex-direction: row;
+            gap: 20px;
+        }
+
+        #king {
+            background-position: 0% 0%;
+        }
+        #queen {
+            background-position: 20% 0%;
+        }
+        #bishop {
+            background-position: 40% 0%;
+        }
+        #knight {
+            background-position: 60.0% 0%;
+        }
+        #rook {
+            background-position: 80.0% 0%;
+        }
+        #pawn {
+            background-position: 100.0% 0%;
+        }
+
+       #kingB {
+            background-position: 0% 100%;
+        }
+        #queenB {
+            background-position: 20% 100%;
+        }
+        #bishopB {
+            background-position: 40% 100%;
+        }
+        #knightB {
+            background-position: 60.0% 100%;
+        }
+        #rookB {
+            background-position: 80.0% 100%;
+        }
+        #pawnB {
+            background-position: 100.0% 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sideBar" style="right: 0px;">
+        <h1>In Game</h1>
+        <div class="info"><p>Current Turn: </p><p>White</p></div>
+        <div class="info"><p>Playing As: </p><p>White</p></div>
+    </div>
+    <div class="sideBar" style="left: 0px;">
+        <h1>Chess Game</h1>
+    </div>
+    <div class="board">
+        <div class="row">
+            <div class="squareBlack" id="0"><div class="piece" id="rookB"></div></div>
+            <div class="squareWhite"id="1"><div class="piece" id="knightB"></div></div>
+            <div class="squareBlack"id="2"><div class="piece" id="bishopB"></div></div>
+            <div class="squareWhite"id="3"><div class="piece" id="queenB"></div></div>
+            <div class="squareBlack"id="4"><div class="piece" id="kingB"></div></div>
+            <div class="squareWhite"id="5"><div class="piece" id="bishop"></div></div>
+            <div class="squareBlack"id="6"><div class="piece" id="knight"></div></div>
+            <div class="squareWhite"id="7"><div class="piece" id="rook"></div></div>
+        </div>
+        <div class="row">
+            <div class="squareWhite"id="8"><div class="piece" id="pawnB"></div></div>
+            <div class="squareBlack"id="9"><div class="piece" id="pawn"></div></div>
+            <div class="squareWhite"id="10"><div class="piece" id="pawn"></div></div>
+            <div class="squareBlack"id="11"><div class="piece" id="pawn"></div></div>
+            <div class="squareWhite"id="12"><div class="piece" id="pawn"></div></div>
+            <div class="squareBlack"id="13"><div class="piece" id="pawn"></div></div>
+            <div class="squareWhite"id="14"><div class="piece" id="pawn"></div></div>
+            <div class="squareBlack"id="15"><div class="piece" id="pawn"></div></div>
+        </div>
+        <div class="row">
+            <div class="squareBlack"id="16">0</div>
+            <div class="squareWhite"id="17">1</div>
+            <div class="squareBlack"id="18">2</div>
+            <div class="squareWhite"id="19">3</div>
+            <div class="squareBlack"id="20">4</div>
+            <div class="squareWhite"id="21">5</div>
+            <div class="squareBlack"id="22">6</div>
+            <div class="squareWhite"id="23">7</div>
+        </div>
+        <div class="row">
+            <div class="squareWhite"id="24">7</div>
+            <div class="squareBlack"id="25">0</div>
+            <div class="squareWhite"id="26">1</div>
+            <div class="squareBlack"id="27">2</div>
+            <div class="squareWhite"id="28">3</div>
+            <div class="squareBlack"id="29">4</div>
+            <div class="squareWhite"id="30">5</div>
+            <div class="squareBlack"id="31">6</div>
+        </div>
+        <div class="row">
+            <div class="squareBlack" id="32">0</div>
+            <div class="squareWhite" id="33">1</div>
+            <div class="squareBlack" id="34">2</div>
+            <div class="squareWhite" id="35">3</div>
+            <div class="squareBlack" id="36">4</div>
+            <div class="squareWhite" id="37">5</div>
+            <div class="squareBlack" id="38">6</div>
+            <div class="squareWhite" id="39">7</div>
+        </div>
+        <div class="row">
+            <div class="squareWhite" id="40">7</div>
+            <div class="squareBlack" id="41">0</div>
+            <div class="squareWhite" id="42">1</div>
+            <div class="squareBlack" id="43">2</div>
+            <div class="squareWhite" id="44">3</div>
+            <div class="squareBlack" id="45">4</div>
+            <div class="squareWhite" id="46">5</div>
+            <div class="squareBlack" id="47">6</div>
+        </div>
+        <div class="row">
+            <div class="squareBlack" id="48">0</div>
+            <div class="squareWhite" id="49">1</div>
+            <div class="squareBlack" id="50">2</div>
+            <div class="squareWhite" id="51">3</div>
+            <div class="squareBlack" id="52">4</div>
+            <div class="squareWhite" id="53">5</div>
+            <div class="squareBlack" id="54">6</div>
+            <div class="squareWhite" id="55">7</div>
+        </div>
+        <div class="row">
+            <div class="squareWhite" id="56">7</div>
+            <div class="squareBlack" id="57">0</div>
+            <div class="squareWhite" id="58">1</div>
+            <div class="squareBlack" id="59">2</div>
+            <div class="squareWhite" id="60">3</div>
+            <div class="squareBlack" id="61">4</div>
+            <div class="squareWhite" id="62">5</div>
+            <div class="squareBlack" id="63">6</div>
+        </div>
+    </div>
+    <script src="chess.js"></script>
+    <script src="../../../tools/loadTopbar.js"></script>
+</body>
+
+</html>

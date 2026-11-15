@@ -1,0 +1,218 @@
+body {
+background-color: var(--background);
+font-family: 'Exo 2';
+}
+
+:root {
+--background: #303030;
+--area-background: #202020;
+
+--main-border: #007700;
+--min-border: #038303;
+
+--button-color: #038303;
+
+--text-color: #ffffff;
+
+--type-color: #00a0ff;
+
+--control-color: #ff00d0;
+
+--operator-color: #ffff00;
+
+--file-icon: "[]";
+}
+
+.fileExplorer {
+width: 25%;
+border: 4px solid var(--main-border);
+border-radius: 8px;
+}
+
+.fileEditor {
+position: relative;
+width: 75%;
+border: 4px solid var(--main-border);
+border-radius: 8px;
+
+color: #3c5f3c;
+}
+
+#editorStatus {
+position: absolute;
+left: 10px;
+bottom: 0;
+z-index: 1;
+}
+
+.textBox {
+position: absolute;
+min-width: 99%;
+min-height: 90%;
+border: 4px solid var(--min-border);
+background-color: var(--area-background);
+color: var(--text-color);
+border-radius: 8px;
+}
+
+.scroll-container {
+position: absolute;
+width: 95%;
+height: 70%;
+background-color: var(--area-background);
+white-space: pre;
+font-family: 'Exo 2';
+color: var(--text-color);
+overflow: auto;
+}
+
+.topBar {
+display: flex;
+flex-direction: row;
+gap: 10px;
+padding-left: 5px;
+padding-right: 5px;
+padding-top: 5px;
+padding-bottom: 5px;
+}
+
+.settingsOption {
+display: flex;
+flex-direction: row;
+gap: 10px;
+padding-left: 5px;
+padding-right: 5px;
+padding-top: 5px;
+padding-bottom: 5px;
+}
+
+.context-menu {
+position: absolute;
+background: var(--area-background);
+border: 3px solid var(--min-border);
+z-index: 1000;
+border-radius: 8px;
+padding: 5px;
+}
+
+.settings {
+position: absolute;
+background: var(--background);
+border: 3px solid var(--min-border);
+border-radius: 8px;
+z-index: 1000;
+padding: 5px;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 40%;
+height: 40%;
+}
+
+.color-picker {
+border: 4px solid var(--min-border);
+border-radius: 5px;
+background-color: var(--background);
+cursor: pointer;
+}
+
+.menu-item {
+color: var(--text-color);
+padding: 5px;
+cursor: pointer;
+font-family: 'Exo 2';
+}
+
+.container {
+display: flex;
+width: 97vw;
+height: 98vh;
+}
+
+.subdirectory {
+position: relative;
+margin-left: 15px;
+padding-left: 15px;
+border-left: 2px solid var(--main-border);
+}
+
+h1 {
+font-size: 1.1em;
+color: var(--text-color);
+}
+
+p {
+color: var(--text-color);
+}
+
+.directory-entry p {
+cursor: pointer;
+position: relative;
+padding-left: 20px;
+}
+
+.directory-entry p::before {
+content: ">";
+position: absolute;
+left: 0;
+top: 0;
+color: var(--text-color);
+transition: transform 0.2s ease-in-out;
+transform: rotate(0deg);
+}
+
+.file-entry p {
+cursor: pointer;
+position: relative;
+padding-left: 20px;
+}
+
+.file-entry p::before {
+content: var(--file-icon);
+position: absolute;
+left: 0;
+top: 0;
+color: var(--text-color);
+transition: transform 0.2s ease-in-out;
+transform: rotate(0deg);
+}
+
+.directory-entry.open p::before {
+transform: rotate(90deg);
+}
+
+.directory-entry.closed p::before {
+transform: rotate(0deg);
+}
+
+.file-entry.closed p::before {
+transform: rotate(0deg);
+}
+
+.editor-control {
+display: inline-block;
+background-color: var(--button-color);
+color: var(--text-color);
+cursor: pointer;
+border-radius: 10px;
+font-family: 'Exo 2';
+padding: 4px 8px;
+text-decoration: none;
+}
+
+select {
+background-color: var(--button-color);
+color: var(--text-color);
+cursor: pointer;
+border-radius: 10px;
+font-family: 'Exo 2';
+}
+
+.fileContainer {
+background-color: var(--area-background);
+min-height: 40vh;
+padding-top: 1px;
+padding-bottom: 1px;
+padding-left: 1px;
+border-radius: 8px;
+}

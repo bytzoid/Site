@@ -1,0 +1,43 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+
+    <title>BytStuff</title>
+    <link rel="icon" type="image/jpg" href="favicon.jpg">
+    <link href="style.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="greet">
+        <h1 style="font-size: 120;">Welcome.</h1>
+        <p id="quote" style="font-size: 55;"></p>
+    </div>
+    <div class="container">
+        <div class="pageblock" style="margin-top: 400px;">
+            <h1 style="text-align: center;">What you will find here</h1>
+            <p>This website will have web apps/experiments that I make and other fun ones I find. You can also find blogs about the development of my games.</p>
+        </div>
+        <div style="text-align: center;" class="pageblock">
+            <h1 style="text-align: center;">Apps</h1>
+            <a class="site-control" href="Pages/Games/index.html">Games</a>
+            <a class="site-control" href="Pages/Experiments/index.html">Experiments</a>
+            <a class="site-control" href="Pages/Tools/index.html">Tools</a>
+        </div>
+    </div>
+    <script>
+        const quote = document.getElementById("quote");
+
+            quotes = ['"hello there!"', '"Welcome!"', '"wla is dum"', '"pufferfish" - Pufferfishorg', '"roror is to talkitive"',' "does anyone actually read these?"', '"rort is dum"', '"this is a quote"', '"hello world!"', '"i love bytstuff"', '"i hate bugs..."', '"why am i even here?"', '"coding is fun"', '"the cake is a lie."', '"to be or not to be."'];
+
+            quote.textContent = quotes[Math.floor(Math.random() * (quotes.length))];
+
+    </script>
+    <script src="tools/loadTopbar.js"></script> 
+   
+</body>
+
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>BytCode</title>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="fileExplorer">
+            <div class="topBar">
+                <h1>File Explorer</h1>
+                <a class="editor-control" href="#" role="button" id="openButton"><b>Open Local Folder</b></a>
+            </div>
+            <div class="fileContainer" id="fileContainer">
+                <p>you haven't loaded anything.</p>
+            </div>
+        </div>
+        <div class="fileEditor">
+            <div class="topBar">
+                <h1>Byt Editor</h1>
+                <a class="editor-control" href="#" role="button" id="saveButton"><b>Save</b></a>
+                <a class="editor-control" href="#" role="button" id="runButton"><b>Run As HTML</b></a>
+                <select name="Language" id="langDropdown">
+  	                <option value="html"><b>HTML</b></option>
+  	                <option value="javascript"><b>JavaScript</b></option>
+                    <option value="css"><b>CSS</b></option>
+	            </select>
+                <a class="editor-control" href="#" role="button" id="settingsButton" style="margin-left: auto; font-size: 1.3em">Settings</a>
+            </div>
+            <div id="container" class="textBox"></div>
+            <p id="editorStatus" aria-live="polite">Open a local folder to start editing.</p>
+        </div>
+        <script src="script.js"></script>
+</body>
+
+</html>

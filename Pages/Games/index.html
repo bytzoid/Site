@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BytStuff - Games</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../style.css">
+    <style>
+        #games-container {
+            max-width: 900px;
+            margin: 0 auto;
+            font-size: 18px;
+        }
+
+        #game-search,
+        #game-file {
+            box-sizing: border-box;
+            width: min(100%, 520px);
+            padding: 10px 14px;
+            font-size: 18px;
+        }
+
+        #games-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin: 24px 0 36px;
+        }
+
+        .game-link {
+            display: block;
+            padding: 16px;
+            border: 2px solid var(--accent-color);
+            border-radius: 12px;
+            text-decoration: none;
+            background: #000;
+            color: inherit;
+        }
+
+        .game-link:hover,
+        .game-link:focus {
+            background: var(--accent-dark-0);
+        }
+
+        #upload-section {
+            border-top: 2px solid var(--accent-color);
+            padding-top: 16px;
+        }
+
+        #upload-message {
+            min-height: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <main class="pageblock" style="margin-top: 100px; text-align: center;">
+        <h1>Games</h1>
+        <div id="games-container">
+            <label for="game-search">Search games</label>
+            <br>
+            <input id="game-search" type="search" placeholder="Search games..." autocomplete="off">
+            <div id="games-list" aria-live="polite">
+                <p>Loading games...</p>
+            </div>
+
+            <section id="upload-section" aria-labelledby="upload-heading">
+                <h2 id="upload-heading">Add a game</h2>
+                <p>Choose an HTML game, then save it into the local Pages/Games/Files folder.</p>
+                <input id="game-file" type="file" accept=".html,.htm,text/html" aria-label="Game HTML file">
+                <p><a class="site-control" href="#" role="button" id="upload-game">Save game to Files</a></p>
+                <p id="upload-message" aria-live="polite"></p>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const gamesList = document.getElementById("games-list");
+        const searchInput = document.getElementById("game-search");
+        const fileInput = document.getElementById("game-file");
+        const uploadMessage = document.getElementById("upload-message");
+        const maxFileSize = 100 * 1024 * 1024;
+        let games = [];
+
+        function displayName(filename) {
+            return filename
+                .replace(/\.html?$/i, "")
+                .replace(/[-_]/g, " ")
+                .replace(/\b\w/g, character => character.toUpperCase());
+        }
+
+        function renderGames() {
+            const query = searchInput.value.trim().toLocaleLowerCase();
+            const filteredGames = games
+                .filter(filename =>
+                    displayName(filename).toLocaleLowerCase().includes(query)
+                )
+                .sort((a, b) =>
+                    displayName(a).localeCompare(displayName(b))
+                );
+
+            gamesList.replaceChildren();
+
+            if (filteredGames.length === 0) {
+                const message = document.createElement("p");
+                message.textContent = "No games found.";
+                gamesList.appendChild(message);
+                return;
+            }
+
+            for (const filename of filteredGames) {
+                const link = document.createElement("a");
+                link.className = "game-link";
+                link.href = `./Files/${encodeURIComponent(filename)}`;
+                link.textContent = displayName(filename);
+                gamesList.appendChild(link);
+            }
+        }
+
+        async function loadGames() {
+            try {
+                const response = await fetch("./games.json", { cache: "no-store" });
+                if (!response.ok) {
+                    throw new Error(`Could not read games.json (${response.status}).`);
+                }
+
+                const filenames = await response.json();
+                if (!Array.isArray(filenames) ||
+                    filenames.some(filename =>
+                        typeof filename !== "string" ||
+                        !/\.html?$/i.test(filename) ||
+                        filename.includes("/") ||
+                        filename.includes("\\")
+                    )) {
+                    throw new Error("The games.json file has an invalid format.");
+                }
+
+                games = [...new Set(filenames)];
+                renderGames();
+            } catch (error) {
+                gamesList.textContent =
+                    `Could not load the games list: ${error.message} Start the site from localhost to use it locally.`;
+            }
+        }
+
+        async function saveGame() {
+            const file = fileInput.files[0];
+            if (!file) {
+                uploadMessage.textContent = "Choose a game file first.";
+                return;
+            }
+            if (!/\.(html|htm)$/i.test(file.name)) {
+                uploadMessage.textContent = "Only .html or .htm files are allowed.";
+                return;
+            }
+            if (file.size > maxFileSize) {
+                uploadMessage.textContent = "The file must be 100 MB or smaller.";
+                return;
+            }
+            if (!window.showDirectoryPicker) {
+                throw new Error("Folder writing requires a supported browser on localhost.");
+            }
+
+            uploadMessage.textContent =
+                "Choose the Pages/Games folder when the folder picker opens.";
+            const gamesDirectory = await window.showDirectoryPicker({
+                mode: "readwrite"
+            });
+            const filesDirectory = await gamesDirectory.getDirectoryHandle("Files");
+
+            if (games.includes(file.name) &&
+                !window.confirm(`Replace the existing "${file.name}" game?`)) {
+                uploadMessage.textContent = "Upload cancelled.";
+                return;
+            }
+
+            const gameHandle = await filesDirectory.getFileHandle(file.name, {
+                create: true
+            });
+            const gameWriter = await gameHandle.createWritable();
+            await gameWriter.write(file);
+            await gameWriter.close();
+
+            try {
+                const manifestHandle = await gamesDirectory.getFileHandle("games.json");
+                const manifestFile = await manifestHandle.getFile();
+                const manifest = JSON.parse(await manifestFile.text());
+                if (!Array.isArray(manifest)) {
+                    throw new Error("games.json must contain a list of filenames.");
+                }
+
+                const updatedGames = [...new Set([...manifest, file.name])]
+                    .sort((a, b) => displayName(a).localeCompare(displayName(b)));
+                const manifestWriter = await manifestHandle.createWritable();
+                await manifestWriter.write(`${JSON.stringify(updatedGames, null, 2)}\n`);
+                await manifestWriter.close();
+                games = updatedGames;
+                renderGames();
+                uploadMessage.textContent = `Saved "${file.name}" to Pages/Games/Files.`;
+            } catch (error) {
+                throw new Error(
+                    `The game file was saved, but the games list could not be updated: ${error.message}`
+                );
+            }
+        }
+
+        document.getElementById("upload-game").addEventListener("click", async event => {
+            event.preventDefault();
+            try {
+                await saveGame();
+            } catch (error) {
+                uploadMessage.textContent = error.message;
+            }
+        });
+
+        searchInput.addEventListener("input", renderGames);
+        loadGames();
+    </script>
+    <script src="../../tools/loadTopbar.js"></script>
+</body>
+</html>

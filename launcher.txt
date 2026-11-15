@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Website Folder Launcher</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 600px; margin: auto; color: #0f0; background: #000; }
+    .box { border: 2px dashed #0f0; padding: 2rem; text-align: center; border-radius: 8px; }
+    input, button { margin-top: 1rem; padding: 0.6rem 1.2rem; font-size: 1rem; }
+    button { cursor: pointer; color: #0f0; background: #000; border: 1px solid #0f0; border-radius: 4px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #status { margin-top: 1rem; white-space: pre-wrap; text-align: left; color: #8f8; }
+    #updateBox { margin-top: 2rem; }
+    #updWarn { display: none; color: #fa0; margin-top: 1rem; text-align: left; }
+    .progress { height: 14px; border: 1px solid #0f0; border-radius: 4px; margin-top: 1rem; overflow: hidden; }
+    .progress > div { height: 100%; width: 0; background: #0f0; transition: width .15s; }
+    #updStatus { margin-top: .8rem; white-space: pre-wrap; text-align: left; color: #8f8; }
+    #errLog { display: none; margin-top: 1rem; max-height: 160px; overflow: auto; text-align: left; white-space: pre-wrap; color: #f66; border: 1px solid #f66; border-radius: 4px; padding: .6rem; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Select Website Folder</h2>
+    <input type="file" id="folderInput" webkitdirectory directory multiple>
+    <br>
+    <button id="launchBtn" disabled>Open Site in New Tab</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="box" id="updateBox">
+    <h2>Update Site Files</h2>
+    <p id="updSource" style="margin:0"></p>
+    <div id="updWarn"></div>
+    <button id="updateBtn">Choose Folder &amp; Update</button>
+    <div class="progress"><div id="updBar"></div></div>
+    <div id="updStatus"></div>
+    <div id="errLog"></div>
+  </div>
+
+<script>
+(() => {
+  const HOST = 'site.local';
+  const MIME = {html:'text/html',htm:'text/html',css:'text/css',js:'text/javascript',mjs:'text/javascript',json:'application/json',svg:'image/svg+xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',ico:'image/x-icon',woff:'font/woff',woff2:'font/woff2',ttf:'font/ttf',otf:'font/otf',mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',mp4:'video/mp4',webm:'video/webm',txt:'text/plain',pdf:'application/pdf',wasm:'application/wasm',xml:'application/xml'};
+
+  const files = new Map();   // normalized path -> File
+  const lower = new Map();   // lowercase path -> normalized path
+  const blobs = new Map();   // path -> blob URL
+  let indexPath = null;
+
+  const $ = id => document.getElementById(id);
+  const status = $('status'), btn = $('launchBtn'), input = $('folderInput');
+
+  const dec = x => { try { return decodeURIComponent(x); } catch (e) { return x; } };
+  const norm = p => {
+    const out = [];
+    for (const s of String(p).split('/')) {
+      if (!s || s === '.') continue;
+      if (s === '..') out.pop(); else out.push(s);
+    }
+    return out.join('/');
+  };
+  const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+  const ext = p => (p.split('.').pop() || '').toLowerCase();
+  const isHtml = p => /^(html?|xhtml)$/.test(ext(p));
+
+  function lookup(p) {
+    p = norm(p);
+    if (files.has(p)) return p;
+    return lower.get(p.toLowerCase()) || null;
+  }
+
+  function findPage(p) {
+    p = norm(dec(p || ''));
+    if (!p) return indexPath;
+    return lookup(p) && isHtml(lookup(p)) ? lookup(p)
+      : lookup(p + '/index.html') || lookup(p + '.html') || lookup(p);
+  }
+
+  function blobFor(path) {
+    const key = lookup(dec(path));
+    if (!key) return null;
+    if (!blobs.has(key)) {
+      const f = files.get(key);
+      blobs.set(key, URL.createObjectURL(new Blob([f], { type: MIME[ext(key)] || f.type || 'application/octet-stream' })));
+    }
+    return blobs.get(key);
+  }
+
+  // Turn a raw URL found in a file at `from` into a blob URL (or null if not local)
+  function toBlob(raw, from) {
+    try {
+      const u = new URL(raw, 'https://' + HOST + '/' + encPath(from));
+      if (u.hostname !== HOST) return null;
+      return blobFor(u.pathname.slice(1));
+    } catch (e) { return null; }
+  }
+
+  async function cssRewrite(css, path) {
+    const imports = [...css.matchAll(/@import\s+(?:url\()?\s*['"]?([^'")\s;]+)['"]?\s*\)?[^;]*;/g)];
+    for (const m of imports) {
+      let rep = '';
+      try {
+        const u = new URL(m[1], 'https://' + HOST + '/' + encPath(path));
+        const k = u.hostname === HOST && lookup(decodeURIComponent(u.pathname.slice(1)));
+        if (k) rep = await cssRewrite(await files.get(k).text(), k);
+      } catch (e) {}
+      css = css.replace(m[0], rep);
+    }
+    return css.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g, (all, q, raw) => {
+      const b = toBlob(raw.trim(), path);
+      return b ? `url("${b}")` : all;
+    });
+  }
+
+  // Runs INSIDE the opened page, at the very start of every page load.
+  function boot() {
+    const L = window.opener && window.opener.__launcher;
+    if (!L) return;
+    const H = 'site.local';
+    const S = window.__bs || (window.__bs = {});   // survives document.open()
+
+    // ---- one-time global patches (must not stack on every page load) ----
+    if (!S.ready) {
+      S.ready = true;
+
+      // about:blank has no usable base/origin, so `new URL('page.html')` throws. Retry with the page base.
+      const RealURL = window.URL;
+      window.URL = new Proxy(RealURL, {
+        construct(target, args) {
+          try { return Reflect.construct(target, args); }
+          catch (err) {
+            const b = args[1];
+            if (b === undefined || b === null || /^(null|about:)/.test(String(b))) {
+              try { return Reflect.construct(target, [args[0], window.__curBase]); } catch (e2) {}
+            }
+            throw err;
+          }
+        }
+      });
+
+      const sa = Element.prototype.setAttribute;
+      S.sa = sa;
+      const map = raw => {
+        try {
+          if (raw == null) return raw;
+          const u = new URL(String(raw), window.__curBase);
+          if (u.hostname === H) { const b = L.blob(u.pathname.slice(1)); if (b) return b; }
+        } catch (e) {}
+        return raw;
+      };
+      S.map = map;
+
+      const go = u => {
+        try {
+          const raw = u.pathname.slice(1);
+          const cur = new URL(window.__curBase);
+          if (u.pathname === cur.pathname && u.hash) {
+            const id = decodeURIComponent(u.hash.slice(1));
+            const el = document.getElementById(id) || document.getElementsByName(id)[0];
+            if (el) el.scrollIntoView();
+            return;
+          }
+          const page = L.findPage(raw);
+          if (page && L.isHtml(page)) L.load(window, page, u.hash);
+          else { const b = L.blob(raw); if (b) window.open(b, '_blank'); else L.load(window, null); }
+        } catch (e) { console.error(e); }
+      };
+      S.go = go;
+
+      // Scripts report their original site URL via .src / document.currentScript.src
+      const rec = (el, v) => {
+        try { const u = new URL(String(v), window.__curBase); if (u.hostname === H) sa.call(el, 'data-orig-src', u.href); } catch (e) {}
+      };
+
+      // Dynamically created elements: rewrite src/href as they're set
+      [[HTMLImageElement,'src'],[HTMLLinkElement,'href'],[HTMLMediaElement,'src'],
+       [HTMLSourceElement,'src'],[HTMLEmbedElement,'src'],[HTMLVideoElement,'poster']].forEach(([C, p]) => {
+        const d = Object.getOwnPropertyDescriptor(C.prototype, p);
+        if (d && d.set) Object.defineProperty(C.prototype, p, { ...d, set(v) { d.set.call(this, map(v)); } });
+      });
+      const sd = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
+      Object.defineProperty(HTMLScriptElement.prototype, 'src', {
+        configurable: true,
+        get() { return this.getAttribute('data-orig-src') || sd.get.call(this); },
+        set(v) { rec(this, v); sd.set.call(this, map(v)); }
+      });
+      Element.prototype.setAttribute = function (n, v) {
+        const l = String(n).toLowerCase();
+        if (this.tagName === 'SCRIPT' && l === 'src') rec(this, v);
+        if ((l === 'src' || l === 'href' || l === 'poster') && this.tagName !== 'A' && this.tagName !== 'AREA') v = map(v);
+        return sa.call(this, n, v);
+      };
+
+      // fetch / XHR
+      const of = window.fetch;
+      window.fetch = function (i, o) {
+        if (typeof i === 'string' || i instanceof URL) i = map(i);
+        return of.call(this, i, o);
+      };
+      const oo = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (m, u, ...r) { return oo.call(this, m, map(u), ...r); };
+
+      // window.open('page.html')
+      const wo = window.open;
+      window.open = function (u, ...r) {
+        try {
+          if (u) { const x = new URL(String(u), window.__curBase); if (x.hostname === H) { go(x); return window; } }
+        } catch (e) {}
+        return wo.call(window, u, ...r);
+      };
+
+      // location.href = 'page.html' etc. (Chromium only)
+      if (window.navigation) {
+        navigation.addEventListener('navigate', e => {
+          try {
+            const x = new URL(e.destination.url);
+            if (x.hostname === H && e.cancelable) { e.preventDefault(); go(x); }
+          } catch (err) {}
+        });
+      }
+    }
+
+    // ---- per-document listeners (document.open() wipes these, so re-add each load) ----
+    const { map, go, sa } = S;
+
+    const fix = el => {
+      if (!el.getAttribute || el.tagName === 'A' || el.tagName === 'AREA') return;
+      ['src', 'href', 'poster'].forEach(a => {
+        const v = el.getAttribute(a);
+        if (v != null) { const m = map(v); if (m !== v) sa.call(el, a, m); }
+      });
+    };
+    new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => {
+      if (n.nodeType !== 1) return;
+      fix(n); n.querySelectorAll && n.querySelectorAll('[src],[href],[poster]').forEach(fix);
+    }))).observe(document, { childList: true, subtree: true });
+
+    // Bubble phase on purpose: the page's own click handlers run first and can cancel the default.
+    document.addEventListener('click', e => {
+      if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const a = e.target.closest && e.target.closest('a[href], area[href]');
+      if (!a || a.hasAttribute('download')) return;
+      const raw = (a.getAttribute('href') || '').trim();
+      if (/^(javascript:|mailto:|tel:)/i.test(raw)) return;
+      if (raw === '#') { e.preventDefault(); return; }
+      try {
+        const u = new URL(raw, window.__curBase);
+        if (u.hostname === H) { e.preventDefault(); go(u); }
+      } catch (err) {}
+    }, false);
+
+    document.addEventListener('submit', e => {
+      if (e.defaultPrevented) return;
+      try {
+        const u = new URL(e.target.getAttribute('action') || '', window.__curBase);
+        if (u.hostname === H) { e.preventDefault(); go(u); }
+      } catch (err) {}
+    }, false);
+  }
+  const BOOT_SRC = '(' + boot.toString() + ')()';
+
+  async function rewrite(text, path) {
+    const doc = new DOMParser().parseFromString(text, 'text/html');
+    doc.querySelectorAll('base').forEach(b => b.remove());
+
+    for (const el of [...doc.querySelectorAll('link[rel~="stylesheet" i]')]) {
+      const u = (() => { try { return new URL(el.getAttribute('href'), 'https://' + HOST + '/' + encPath(path)); } catch (e) { return null; } })();
+      const k = u && u.hostname === HOST && lookup(decodeURIComponent(u.pathname.slice(1)));
+      if (!k) continue;
+      const st = doc.createElement('style');
+      if (el.media) st.media = el.media;
+      st.textContent = await cssRewrite(await files.get(k).text(), k);
+      el.replaceWith(st);
+    }
+    for (const st of doc.querySelectorAll('style')) st.textContent = await cssRewrite(st.textContent, path);
+
+    doc.querySelectorAll('[src],[poster],link[href]').forEach(el => {
+      ['src', 'poster', 'href'].forEach(a => {
+        if (a === 'href' && el.tagName !== 'LINK') return;
+        const v = el.getAttribute(a);
+        if (v == null) return;
+        const b = toBlob(v, path);
+        if (b) {
+          if (el.tagName === 'SCRIPT' && a === 'src') {
+            try { el.setAttribute('data-orig-src', new URL(v, 'https://' + HOST + '/' + encPath(path)).href); } catch (e) {}
+          }
+          el.setAttribute(a, b);
+        }
+      });
+    });
+
+    const base = doc.createElement('base');
+    base.href = 'https://' + HOST + '/' + encPath(path);
+    const boot = doc.createElement('script');
+    boot.textContent = 'window.__curBase=' + JSON.stringify(base.href) + ';' + BOOT_SRC;
+    doc.head.prepend(boot);
+    doc.head.prepend(base);
+    return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+  }
+
+  async function load(win, path, hash) {
+    const d = win.document;
+    if (!path) {
+      d.open(); d.write('<body style="font-family:sans-serif;padding:2rem"><h2>404</h2><p>That file is not in the selected folder.</p></body>'); d.close();
+      return;
+    }
+    const html = await rewrite(await files.get(path).text(), path);
+    d.open(); d.write(html); d.close();
+    if (hash) setTimeout(() => {
+      const id = decodeURIComponent(hash.slice(1));
+      const el = win.document.getElementById(id);
+      if (el) el.scrollIntoView();
+    }, 100);
+  }
+
+  window.__launcher = { blob: blobFor, findPage, isHtml, load };
+
+  input.addEventListener('change', () => {
+    files.clear(); lower.clear(); blobs.clear(); indexPath = null;
+    const list = [...input.files];
+    for (const f of list) {
+      const rel = f.webkitRelativePath || f.name;
+      const p = norm(rel.split('/').slice(1).join('/') || rel);
+      files.set(p, f);
+      lower.set(p.toLowerCase(), p);
+    }
+    const htmls = [...files.keys()].filter(isHtml).sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b));
+    indexPath = htmls.find(p => p.toLowerCase() === 'index.html')
+      || htmls.find(p => /(^|\/)index\.html?$/i.test(p))
+      || htmls[0] || null;
+    btn.disabled = !indexPath;
+    status.textContent = indexPath
+      ? `${files.size} files loaded.\nEntry page: ${indexPath}`
+      : (files.size ? 'No .html file found in that folder.' : '');
+  });
+
+  btn.addEventListener('click', async () => {
+    const w = window.open('about:blank', '_blank');   // must happen directly in the click
+    if (!w) { status.textContent = 'Popup was blocked. Allow popups for this page and try again.'; return; }
+    try { await load(w, indexPath); status.textContent += '\nOpened.'; }
+    catch (e) { status.textContent = 'Error: ' + e.message; }
+  });
+})();
+</script>
+
+<script>
+(() => {
+  // ====== CONFIGURE THESE ======
+  const GITHUB_USER   = 'bytzoid';
+  const REPO_NAME     = 'BytStuff';
+  const BRANCH_OR_TAG = 'main';   // a release tag (e.g. 'v1.2.0') updates most reliably
+  // =============================
+
+  const BASE = `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@${BRANCH_OR_TAG}/`;
+  const $ = id => document.getElementById(id);
+  const btn = $('updateBtn'), bar = $('updBar'), st = $('updStatus'), errBox = $('errLog'), warn = $('updWarn');
+  $('updSource').textContent = `Source: ${GITHUB_USER}/${REPO_NAME}@${BRANCH_OR_TAG}`;
+
+  const logErr = msg => { errBox.style.display = 'block'; errBox.textContent += msg + '\n'; errBox.scrollTop = errBox.scrollHeight; };
+  const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+
+  if (typeof window.showDirectoryPicker !== 'function') {
+    warn.style.display = 'block';
+    warn.textContent = 'Your browser does not support the File System Access API (Firefox and Safari do not). Use Chrome, Edge or another Chromium browser to update. Updating also does not work inside embedded/iframe pages.';
+    btn.disabled = true;
+  }
+
+  async function getDir(root, parts) {
+    let dir = root;
+    for (const part of parts) dir = await dir.getDirectoryHandle(part, { create: true });
+    return dir;
+  }
+
+  btn.addEventListener('click', async () => {
+    errBox.textContent = ''; errBox.style.display = 'none'; bar.style.width = '0';
+    if (GITHUB_USER === 'USERNAME' || REPO_NAME === 'REPO') {
+      logErr('Set GITHUB_USER, REPO_NAME and BRANCH_OR_TAG at the top of the update script first.');
+      return;
+    }
+    let root;
+    try {
+      root = await window.showDirectoryPicker({ mode: 'readwrite' });   // must be first: needs the click
+    } catch (e) {
+      st.textContent = e.name === 'AbortError' ? 'Folder selection cancelled.' : 'Could not open folder picker.';
+      if (e.name !== 'AbortError') logErr(`${e.name}: ${e.message}`);
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      // Currently installed version (if any)
+      let installed = null;
+      try {
+        const lm = await root.getFileHandle('manifest.json');
+        installed = JSON.parse(await (await lm.getFile()).text()).version || null;
+      } catch (e) {}
+
+      st.textContent = 'Fetching manifest...';
+      const res = await fetch(`${BASE}manifest.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`manifest.json: HTTP ${res.status}`);
+      const manifestText = await res.text();
+      const manifest = JSON.parse(manifestText);
+      const list = Array.isArray(manifest) ? manifest : manifest.files;
+      if (!Array.isArray(list) || !list.length) throw new Error('manifest.json has no "files" array.');
+      const version = Array.isArray(manifest) ? 'unknown' : (manifest.version || 'unknown');
+
+      const paths = [...new Set(list.filter(p => typeof p === 'string'))].filter(p => {
+        const ok = p && !p.startsWith('/') && !p.includes('\\') && !p.split('/').some(x => x === '..' || x === '' );
+        if (!ok) logErr(`Skipped unsafe path: ${p}`);
+        return ok;
+      });
+
+      st.textContent = `Installed: ${installed || 'none'}  ->  Latest: ${version}\n`;
+      let done = 0, failed = 0;
+      for (const p of paths) {
+        st.textContent = `Installed: ${installed || 'none'}  ->  Latest: ${version}\n(${done + failed + 1}/${paths.length}) ${p}`;
+        try {
+          const r = await fetch(`${BASE}${encPath(p)}?t=${Date.now()}`, { cache: 'no-store' });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const buf = await r.arrayBuffer();
+          const parts = p.split('/'), name = parts.pop();
+          const dir = await getDir(root, parts);
+          const fh = await dir.getFileHandle(name, { create: true });
+          const w = await fh.createWritable();
+          await w.write(buf);
+          await w.close();
+          done++;
+        } catch (e) {
+          failed++;
+          logErr(`${p}: ${e.name === 'NotAllowedError' ? 'Permission denied. ' : ''}${e.message}`);
+        }
+        bar.style.width = ((done + failed) / paths.length * 100) + '%';
+      }
+
+      if (!failed) {
+        // Record the installed version locally
+        const mh = await root.getFileHandle('manifest.json', { create: true });
+        const mw = await mh.createWritable(); await mw.write(manifestText); await mw.close();
+      }
+      st.textContent = `Done. Version ${version}: ${done} updated, ${failed} failed.` + (failed ? '\nSee errors below.' : '');
+    } catch (e) {
+      st.textContent = 'Update failed.';
+      logErr(`${e.name}: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

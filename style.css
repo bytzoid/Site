@@ -1,0 +1,207 @@
+:root {
+    --accent-color: #0f0;
+    --accent-dark-0: color-mix(in srgb, var(--accent-color) 25%, #000);
+    --accent-dark-1: color-mix(in srgb, var(--accent-color) 60%, #000);
+    --accent-dark-2: color-mix(in srgb, var(--accent-color) 70%, #000);
+    --accent-bright: color-mix(in srgb, var(--accent-color) 50%, #fff);
+}
+
+.topbar {
+    display: flex;
+    position: fixed;
+    z-index: 9000;
+    left: 7px;
+    right: 7px;
+    top: 7px;
+    gap: 1px;
+    background-color: #000;
+    outline: var(--accent-color) solid;
+    outline-width: 5px;
+    border-radius: 20px;
+}
+
+.greet {
+    text-align: center;
+    position: absolute;
+    z-index: -110;
+    top: 100px;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 1;
+    animation: fade-out-scroll linear forwards;
+    animation-timeline: view();
+    animation-range: entry 400px exit 600px;
+}
+
+@keyframes fade-out-scroll {
+    to {
+        opacity: 0;
+        top: 750px;
+        scale: 0.5;
+        transform: translate(-100%, -100%);
+    }
+
+    from {
+        opacity: 1.3;
+        top: 100px;
+        scale: 1.2;
+        transform: translate(-41.6%, -41.6%);
+    }
+}
+
+img {
+    width: auto;
+    height: auto;
+}
+
+.imageScroll {
+    display: flex;
+    gap: 0px;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    height: auto;
+}
+
+.scroll-container {
+    position: absolute;
+    width: 95%;
+    height: 70%;
+    background-color: #000;
+    white-space: pre;
+    font-family: Arial;
+    color: var(--accent-color);
+    overflow: auto;
+}
+
+.scrollBox {
+    display: flex;
+    animation: move-sideways 10s linear infinite;
+}
+
+@keyframes move-sideways {
+    from {
+        transform: translateX(0%);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.pageblock {
+    font-size: 35px;
+    margin: 30px;
+    margin-bottom: 60px;
+    padding: 10px;
+    outline: var(--accent-color) solid;
+    outline-width: 5px;
+    border-radius: 30px;
+    background-color: black;
+}
+
+.container {
+    margin: auto;
+}
+
+#messages {
+    white-space-collapse: preserve;
+}
+
+a.site-control {
+    display: inline-block;
+    border-radius: 20px;
+    margin: 10px;
+    outline: var(--accent-color) solid;
+    outline-width: 5px;
+    color: var(--accent-color);
+    background-color: black;
+    padding: 4px 10px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+input {
+    border-radius: 20px;
+    width: 10%;
+    margin: 10px;
+    outline: var(--accent-color) solid;
+    outline-width: 5px;
+    color: var(--accent-color);
+    background-color: black;
+    font-size: xx-large;
+}
+
+body {
+    margin: 10px;
+    font-family: 'Exo 2';
+    background-color: black;
+    background-image: linear-gradient(to right, var(--accent-dark-0), black, var(--accent-dark-0));
+    color: var(--accent-color);
+}
+
+h1 {
+    font-size: 60;
+    margin-left: 10px;
+    text-shadow:
+        0 0 7px var(--accent-color),
+        0 0 10px var(--accent-dark-1),
+        0 0 21px var(--accent-dark-2),
+        0 0 42px var(--accent-dark-2),
+        0 0 82px var(--accent-bright),
+        0 0 102px var(--accent-bright),
+        0 0 122px var(--accent-bright);
+}
+
+a {
+    color: var(--accent-color);
+}
+
+.context-menu {
+    position: absolute;
+    background: black;
+    border: 3px solid var(--accent-color);
+    z-index: 1000;
+    border-radius: 8px;
+    padding: 5px;
+}
+
+.menu-item {
+    position: fixed;
+    color: var(--accent-color);
+    padding: 5px;
+    cursor: pointer;
+    font-family: 'Exo 2';
+}
+
+.settingsOption {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    z-index: 999999999;
+}
+
+.settings {
+    position: fixed;
+    background: #000;
+    border: 3px solid var(--accent-color);
+    border-radius: 8px;
+    z-index: 10000;
+    padding: 5px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40%;
+    height: 40%;
+}
+
+.color-picker {
+    border: 4px solid var(--accent-color);
+    border-radius: 5px;
+    background-color: #000;
+    cursor: pointer;
+}
