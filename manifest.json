@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "files": [
     "Pages/Experiments/Chess/chess.js",
     "Pages/Experiments/Chess/index.html",
@@ -16,7 +16,7 @@
     "Pages/Tools/FileEditor/script.js",
     "Pages/Tools/FileEditor/styles.css",
     "Pages/Tools/index.html",
-    "index.html",
+    "index.htm",
     "launcher.txt",
     "style.css",
     "tools/loadTopbar.js",
