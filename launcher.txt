@@ -352,7 +352,9 @@
   const BRANCH_OR_TAG = 'auto';   // 'auto' = newest version tag via jsDelivr; or set a fixed tag/branch
   // =============================
 
-  let BASE = '';
+  let BASE = '', REF = '';
+  const HOSTS = ['cdn.jsdelivr.net', 'fastly.jsdelivr.net', 'gcore.jsdelivr.net', 'testingcf.jsdelivr.net'];
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
   const $ = id => document.getElementById(id);
   const btn = $('updateBtn'), bar = $('updBar'), st = $('updStatus'), errBox = $('errLog'), warn = $('updWarn');
   $('updSource').textContent = `Source: ${GITHUB_USER}/${REPO_NAME}@${BRANCH_OR_TAG}`;
@@ -363,6 +365,7 @@
   async function resolveRef() {
     // 'auto' = let jsDelivr pick your newest semver tag (it uses the default branch if there are no tags)
     const ref = BRANCH_OR_TAG === 'auto' ? 'latest' : BRANCH_OR_TAG;
+    REF = ref;
     BASE = `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@${ref}/`;
     $('updSource').textContent = `Source: ${GITHUB_USER}/${REPO_NAME}@${ref}`;
   }
@@ -371,6 +374,25 @@
     warn.style.display = 'block';
     warn.textContent = 'Your browser does not support the File System Access API (Firefox and Safari do not). Use Chrome, Edge or another Chromium browser to update. Updating also does not work inside embedded/iframe pages.';
     btn.disabled = true;
+  }
+
+  // Download one file as bytes: retry, then fall back through jsDelivr mirrors.
+  async function fetchBuf(path) {
+    const errs = [];
+    for (const host of HOSTS) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const r = await fetch(`https://${host}/gh/${GITHUB_USER}/${REPO_NAME}@${REF}/${encPath(path)}`);
+          if (r.ok) return await r.arrayBuffer();
+          errs.push(`${host}: HTTP ${r.status}`);
+          break;                                   // a real HTTP answer: no point retrying this host
+        } catch (e) {
+          errs.push(`${host}: ${e.message}`);
+          await sleep(500 * (attempt + 1));
+        }
+      }
+    }
+    throw new Error(errs.join(' | '));
   }
 
   async function getDir(root, parts) {
@@ -425,9 +447,7 @@
       for (const p of paths) {
         st.textContent = `Installed: ${installed || 'none'}  ->  Latest: ${version}\n(${done + failed + 1}/${paths.length}) ${p}`;
         try {
-          const r = await fetch(`${BASE}${encPath(p)}?t=${Date.now()}`, { cache: 'no-store' });
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          const buf = await r.arrayBuffer();
+          const buf = await fetchBuf(p);
           const parts = p.split('/'), name = parts.pop();
           const dir = await getDir(root, parts);
           const fh = await dir.getFileHandle(name, { create: true });
