@@ -348,17 +348,24 @@
 (() => {
   // ====== CONFIGURE THESE ======
   const GITHUB_USER   = 'bytzoid';
-  const REPO_NAME     = 'BytStuff';
-  const BRANCH_OR_TAG = 'main';   // a release tag (e.g. 'v1.2.0') updates most reliably
+  const REPO_NAME     = 'Site';
+  const BRANCH_OR_TAG = 'auto';   // 'auto' = newest version tag via jsDelivr; or set a fixed tag/branch
   // =============================
 
-  const BASE = `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@${BRANCH_OR_TAG}/`;
+  let BASE = '';
   const $ = id => document.getElementById(id);
   const btn = $('updateBtn'), bar = $('updBar'), st = $('updStatus'), errBox = $('errLog'), warn = $('updWarn');
   $('updSource').textContent = `Source: ${GITHUB_USER}/${REPO_NAME}@${BRANCH_OR_TAG}`;
 
   const logErr = msg => { errBox.style.display = 'block'; errBox.textContent += msg + '\n'; errBox.scrollTop = errBox.scrollHeight; };
   const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+
+  async function resolveRef() {
+    // 'auto' = let jsDelivr pick your newest semver tag (it uses the default branch if there are no tags)
+    const ref = BRANCH_OR_TAG === 'auto' ? 'latest' : BRANCH_OR_TAG;
+    BASE = `https://cdn.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@${ref}/`;
+    $('updSource').textContent = `Source: ${GITHUB_USER}/${REPO_NAME}@${ref}`;
+  }
 
   if (typeof window.showDirectoryPicker !== 'function') {
     warn.style.display = 'block';
@@ -396,6 +403,8 @@
         installed = JSON.parse(await (await lm.getFile()).text()).version || null;
       } catch (e) {}
 
+      st.textContent = 'Finding latest version...';
+      await resolveRef();
       st.textContent = 'Fetching manifest...';
       const res = await fetch(`${BASE}manifest.json?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`manifest.json: HTTP ${res.status}`);

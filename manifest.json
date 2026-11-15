@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "files": [
+    "Pages/Experiments/Chess/chess.js",
+    "Pages/Experiments/Chess/index.html",
+    "Pages/Experiments/Chess/pieces.png",
+    "Pages/Experiments/index.html",
+    "Pages/Games/base.html",
+    "Pages/Games/games.json",
+    "Pages/Games/index.html",
+    "Pages/Tools/Countdown/countdown.js",
+    "Pages/Tools/Countdown/index.html",
+    "Pages/Tools/Countdown/style.css",
+    "Pages/Tools/Editor.html",
+    "Pages/Tools/FileEditor/index.html",
+    "Pages/Tools/FileEditor/script.js",
+    "Pages/Tools/FileEditor/styles.css",
+    "Pages/Tools/index.html",
+    "index.html",
+    "launcher.txt",
+    "style.css",
+    "tools/loadTopbar.js",
+    "tools/loadTopbarPassive.js"
+  ]
+}
