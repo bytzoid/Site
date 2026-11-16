@@ -185,7 +185,7 @@ try {
   document.getElementById("settings").remove();
 
 
-  const homeUrl = new URL("../index.html", document.currentScript.src).href;
+  const homeUrl = new URL("../index.htm", document.currentScript.src).href;
   topbar.innerHTML = `
   <div class="topbar">
   <a class="site-control" href="${homeUrl}">Home</a>

@@ -1,9 +1,10 @@
+<!-- ctrl+a and copy, then paste it at the link. Then press run and then you select the Site folder with the open files button. THen press the open site button under it. https://www.w3schools.com/html/tryit.asp?filename=tryhtml_default -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Website Folder Launcher</title>
+  <title>Website Launcher</title>
   <style>
     body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 600px; margin: auto; color: #0f0; background: #000; }
     .box { border: 2px dashed #0f0; padding: 2rem; text-align: center; border-radius: 8px; }
@@ -21,10 +22,10 @@
 </head>
 <body>
   <div class="box">
-    <h2>Select Website Folder</h2>
+    <h2>Select SITE Folder First</h2>
     <input type="file" id="folderInput" webkitdirectory directory multiple>
     <br>
-    <button id="launchBtn" disabled>Open Site in New Tab</button>
+    <button id="launchBtn" disabled>Then Click Here</button>
     <div id="status"></div>
   </div>
 
