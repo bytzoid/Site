@@ -124,7 +124,23 @@
     // ---- one-time global patches (must not stack on every page load) ----
     if (!S.ready) {
       S.ready = true;
-
+      // AudioWorklet modules (Godot audio) and Workers
+if (window.AudioWorklet) {
+  const oa = AudioWorklet.prototype.addModule;
+  AudioWorklet.prototype.addModule = function (u, o) {
+    return oa.call(this, map(String(u)), o);
+  };
+}
+['Worker', 'SharedWorker'].forEach(n => {
+  const W = window[n];
+  if (!W) return;
+  window[n] = new Proxy(W, {
+    construct(t, args) {
+      if (args[0] != null) args[0] = map(String(args[0]));
+      return Reflect.construct(t, args);
+    }
+  });
+});
       // about:blank has no usable base/origin, so `new URL('page.html')` throws. Retry with the page base.
       const RealURL = window.URL;
       window.URL = new Proxy(RealURL, {
